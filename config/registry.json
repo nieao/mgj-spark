@@ -1,0 +1,53 @@
+{
+  "_说明": "mgj-spark 注册表真相源。精简总控——节点主要用于记忆 scope 隔离与档位上限；能处理谁由 plugins/ 决定。改本文件热重载，无需重启桥。",
+  "settings": {
+    "feishu_channel": "http",
+    "_feishu_channel说明": "http=纯Python(tenant_token发送+lark-oapi ws接收,Spark默认) | larkcli=node lark-cli接收",
+    "token_ttl_seconds": 1800,
+    "board_port": 8250,
+    "llm_fallback": "stepfun",
+    "gen_tier": 1,
+    "_gen_tier说明": "生图(spark_gen)权限档：1=直接出图(默认) | 2=先审批卡回「批准」才画(防误触/防刷GPU)。",
+    "model_policy": {
+      "default": "stepfun",
+      "_说明": "值可为 provider名(stepfun/deepseek/glm...)或 provider:model(如 stepfun:step-3.7-flash)。默认阶跃 StepFun。",
+      "by_intent": {}
+    },
+    "budget_by_tier": {
+      "0": 0, "1": 0.05, "2": 0.2, "3": 0.5,
+      "_说明": "单次派发成本上限(美元)，0=不限。观测用。"
+    }
+  },
+  "nodes": [
+    {
+      "id": "aigc-spark",
+      "name": "AIGC-spark生图",
+      "dir": "~/AIGC-spark",
+      "category": "ops",
+      "tier_max": 1,
+      "mem_namespace": "aigc-spark",
+      "keywords": ["生图", "出图", "comfyui", "aeon", "spark", "flux", "工作台"],
+      "desc": "DGX Spark 上的 AIGC-spark 生图工作台 + aeon-spark ComfyUI，由 spark_ops 插件观测",
+      "enabled": true
+    },
+    {
+      "id": "general",
+      "name": "通用问答",
+      "dir": "~",
+      "category": "general",
+      "tier_max": 2,
+      "mem_namespace": "general",
+      "keywords": [],
+      "desc": "不属于专用插件的问题，走大模型单发作答（general_qa 插件）",
+      "enabled": true
+    }
+  ],
+  "default_node": {
+    "id": "general",
+    "name": "通用问答",
+    "dir": "~",
+    "category": "general",
+    "tier_max": 2,
+    "mem_namespace": "general"
+  }
+}

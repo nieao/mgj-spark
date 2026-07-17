@@ -1,0 +1,26 @@
+# mgj-spark systemd 单元（DGX Spark 生产守护）
+# 装：
+#   sudo cp systemd/mgj-spark.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now mgj-spark
+# 看日志： journalctl -u mgj-spark -f
+# 改 User / WorkingDirectory 为你在 Spark 上的真实用户与部署路径。
+[Unit]
+Description=mgj-spark - 猫管家 Spark 精简总控（飞书管 AIGC-spark 生图）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nvdspk02
+WorkingDirectory=/home/nvdspk02/mgj-spark
+# 载入 .env（观测端点/模型旋钮）；缺失不报错
+EnvironmentFile=-/home/nvdspk02/mgj-spark/.env
+ExecStart=/home/nvdspk02/mgj-spark/.venv/bin/python /home/nvdspk02/mgj-spark/bridge.py
+Restart=always
+RestartSec=5
+# ws 长连接偶断由 bridge/通道内部自愈；进程级崩溃由 systemd 兜底重启
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

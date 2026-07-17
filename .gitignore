@@ -1,0 +1,14 @@
+# 凭证与运行时状态绝不入库
+config/credentials.json
+config/providers.json
+_state/
+out/
+*.pyc
+__pycache__/
+.venv/
+.env
+# 记忆正文（scope 隔离的真实记忆）+ 向量索引 默认不入库，只留目录骨架
+memory/**/*.md
+memory/*.db
+memory/**/*.db
+!memory/.gitkeep

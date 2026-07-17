@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mgj-spark × AIGC-spark × ComfyUI 契合度审计</title>
+<style>
+:root{
+  --bg-void:#0a0a0d; --bg-panel:#14131a; --bg-panel-2:#1c1a24; --bg-elevated:#242029;
+  --gold-primary:#d4af37; --gold-bright:#f4d98b; --gold-amber:#c9a227; --gold-deep:#a88422;
+  --gold-line:rgba(212,175,55,.35); --border-gold:rgba(212,175,55,.22);
+  --text-primary:#ede8dc; --text-muted:#9a927f; --text-dim:#6b6555;
+  --danger:#c0563a; --ok:#8fae6b;
+  --font-serif:"Noto Serif SC",Georgia,serif;
+  --font-mono:"Space Mono","SFMono-Regular",Consolas,monospace;
+  --font-sans:system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+  --radius:4px;
+  --glow-gold:0 0 20px rgba(212,175,55,.12);
+  --glow-gold-strong:0 0 28px rgba(212,175,55,.22);
+  --shadow-panel:0 8px 32px rgba(0,0,0,.5);
+  --ease:cubic-bezier(.22,.68,.35,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg-void); color:var(--text-primary);
+  font-family:var(--font-sans); line-height:1.8; overflow-x:hidden;
+  background-image:
+    radial-gradient(circle at 15% 8%,rgba(212,175,55,.05),transparent 40%),
+    radial-gradient(circle at 85% 92%,rgba(212,175,55,.04),transparent 45%);
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+section{padding:80px 0;border-bottom:1px solid rgba(212,175,55,.08)}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted)}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+/* cover */
+.cover{padding-top:120px;padding-bottom:100px;position:relative}
+.cover .deco{position:absolute;top:60px;right:12px;width:170px;height:220px;opacity:.5;pointer-events:none}
+.cover h1{font-family:var(--font-serif);font-weight:600;font-size:44px;line-height:1.25;margin:18px 0 6px}
+.cover h1 .g{background:linear-gradient(135deg,#f4d98b,#d4af37,#a88422);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cover h2en{display:block;font-family:var(--font-mono);font-size:15px;letter-spacing:.1em;color:var(--gold-deep);margin-top:8px;text-transform:uppercase}
+.cover .lede{max-width:720px;color:var(--text-muted);font-size:16px;margin-top:24px;border-left:2px solid var(--gold-line);padding-left:18px}
+.cover .lede b{color:var(--text-primary);font-weight:500}
+.metrics{display:flex;flex-wrap:wrap;gap:36px;margin-top:44px}
+.metric .n{font-family:var(--font-mono);font-size:44px;color:var(--gold-primary);text-shadow:var(--glow-gold);line-height:1}
+.metric .n.warn{color:var(--danger)}
+.metric .l{font-size:12px;color:var(--text-muted);margin-top:8px;letter-spacing:.03em}
+.meta-line{margin-top:40px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:.05em}
+
+h3.sec{font-family:var(--font-serif);font-size:27px;font-weight:600;margin:6px 0 8px;color:var(--text-primary)}
+.sec-en{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-deep)}
+.sec-desc{color:var(--text-muted);max-width:760px;margin:14px 0 40px}
+
+/* pillars */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pillar{background:var(--bg-panel);border:1px solid var(--border-gold);border-top:3px solid var(--gold-primary);border-radius:var(--radius);padding:26px 22px;transition:all .4s var(--ease)}
+.pillar:hover{transform:translateY(-3px);box-shadow:var(--glow-gold)}
+.pillar .idx{font-family:var(--font-mono);font-size:13px;color:var(--gold-deep)}
+.pillar h4{font-family:var(--font-serif);font-size:19px;margin:8px 0 10px;color:var(--gold-bright)}
+.pillar p{font-size:14px;color:var(--text-muted)}
+.pillar .verdict{display:inline-block;margin-top:14px;font-family:var(--font-mono);font-size:11px;padding:3px 10px;border-radius:3px;letter-spacing:.04em}
+.v-ok{color:var(--ok);border:1px solid rgba(143,174,107,.4);background:rgba(143,174,107,.07)}
+.v-gap{color:var(--danger);border:1px solid rgba(192,86,58,.4);background:rgba(192,86,58,.07)}
+
+/* topo */
+.topo-box{background:var(--bg-panel);border:1px solid var(--border-gold);border-radius:var(--radius);padding:20px;overflow-x:auto;box-shadow:var(--shadow-panel)}
+.legend{display:flex;gap:24px;flex-wrap:wrap;margin-top:16px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* curio */
+.curio-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.curio{background:var(--bg-panel);border:1px solid var(--border-gold);border-radius:var(--radius);padding:22px 20px;transition:all .4s var(--ease)}
+.curio:hover{transform:translateY(-3px);box-shadow:var(--glow-gold)}
+.curio .ch{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.curio .cn{font-family:var(--font-serif);font-size:20px;color:var(--gold-primary)}
+.curio h5{font-family:var(--font-serif);font-size:17px;color:var(--text-primary)}
+.curio p{font-size:13.5px;color:var(--text-muted);margin-top:4px}
+.curio code{font-family:var(--font-mono);font-size:12px;color:var(--gold-bright);background:rgba(212,175,55,.08);padding:1px 5px;border-radius:3px}
+.badge{font-family:var(--font-mono);font-size:10.5px;padding:2px 8px;border-radius:3px;letter-spacing:.04em;white-space:nowrap}
+.b-ok{color:var(--ok);border:1px solid rgba(143,174,107,.4)}
+.b-warn{color:var(--gold-amber);border:1px solid rgba(201,162,39,.45)}
+.b-gap{color:var(--danger);border:1px solid rgba(192,86,58,.45)}
+.span3{grid-column:span 3}.span2{grid-column:span 2}.span6{grid-column:span 6}.span4{grid-column:span 4}
+
+/* matrix */
+.matrix{width:100%;border-collapse:collapse;font-size:13.5px;overflow:hidden;border-radius:var(--radius)}
+.matrix th{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold-bright);text-align:left;padding:14px 16px;border-bottom:1px solid var(--gold-line);background:var(--bg-panel-2)}
+.matrix td{padding:13px 16px;border-bottom:1px solid rgba(212,175,55,.08);color:var(--text-muted);vertical-align:top}
+.matrix tr:hover td{background:rgba(212,175,55,.03)}
+.matrix .pill{font-family:var(--font-mono);font-size:11px;padding:2px 9px;border-radius:3px}
+.p-ok{color:var(--ok)}.p-part{color:var(--gold-amber)}.p-gap{color:var(--danger)}
+.matrix td b{color:var(--text-primary);font-weight:500}
+
+/* gap cards */
+.gaps{display:flex;flex-direction:column;gap:16px}
+.gap-card{background:rgba(192,86,58,.06);border:1px solid rgba(192,86,58,.22);border-left:3px solid var(--danger);border-radius:var(--radius);padding:22px 24px;transition:all .4s var(--ease)}
+.gap-card.mild{background:rgba(201,162,39,.05);border-color:rgba(201,162,39,.25);border-left-color:var(--gold-amber)}
+.gap-card:hover{transform:translateY(-2px)}
+.gap-card .gh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.gap-card .tag{font-family:var(--font-mono);font-size:11px;padding:2px 9px;border-radius:3px;color:var(--danger);border:1px solid rgba(192,86,58,.4)}
+.gap-card.mild .tag{color:var(--gold-amber);border-color:rgba(201,162,39,.45)}
+.gap-card h4{font-family:var(--font-serif);font-size:19px;color:var(--text-primary)}
+.gap-card p{font-size:14.5px;color:var(--text-muted);margin-top:4px}
+.gap-card .fix{margin-top:12px;font-size:13.5px;color:var(--text-primary)}
+.gap-card .fix b{color:var(--gold-bright);font-weight:500}
+.gap-card code{font-family:var(--font-mono);font-size:12px;color:var(--gold-bright);background:rgba(212,175,55,.08);padding:1px 5px;border-radius:3px}
+.gap-card .src{margin-top:10px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+
+/* quote */
+.dark-quote{text-align:center;padding:70px 20px}
+.dark-quote p{font-family:var(--font-serif);font-size:29px;line-height:1.5;color:var(--text-primary);max-width:820px;margin:0 auto}
+.dark-quote em{color:var(--gold-primary);font-style:italic}
+.dark-quote .by{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:22px;letter-spacing:.08em}
+
+/* roadmap */
+.roadmap{display:flex;flex-direction:column;gap:14px}
+.rm{background:var(--bg-panel);border:1px solid var(--border-gold);border-left:3px solid var(--gold-primary);border-radius:var(--radius);padding:20px 24px;transition:all .4s var(--ease)}
+.rm:hover{transform:translateX(3px);box-shadow:var(--glow-gold)}
+.rm .rn{font-family:var(--font-mono);font-size:12px;color:var(--gold-deep)}
+.rm h4{font-family:var(--font-serif);font-size:18px;color:var(--gold-bright);margin:4px 0 6px}
+.rm p{font-size:14px;color:var(--text-muted)}
+.rm code{font-family:var(--font-mono);font-size:12px;color:var(--gold-bright);background:rgba(212,175,55,.08);padding:2px 7px;border-radius:3px;display:inline-block;margin-top:8px}
+
+footer{padding:50px 0 70px;text-align:center;color:var(--text-dim);font-family:var(--font-mono);font-size:11px;letter-spacing:.06em}
+
+@media(max-width:768px){
+  .cover h1{font-size:31px}.cover .deco{display:none}
+  section{padding:56px 0}
+  .pillars{grid-template-columns:1fr}
+  .curio-grid{grid-template-columns:1fr}
+  .span3,.span2,.span6,.span4{grid-column:span 1}
+  .metrics{gap:24px}.metric .n{font-size:34px}
+  .dark-quote p{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== COVER ===== -->
+<section class="cover">
+<div class="wrap">
+  <svg class="deco" viewBox="0 0 170 220" fill="none" stroke="var(--gold-line)" stroke-width="1">
+    <rect x="10" y="10" width="150" height="200" rx="3"/>
+    <line x1="10" y1="76" x2="160" y2="76"/><line x1="10" y1="142" x2="160" y2="142"/>
+    <line x1="85" y1="10" x2="85" y2="76"/><line x1="55" y1="142" x2="55" y2="210"/><line x1="120" y1="142" x2="120" y2="210"/>
+    <circle cx="47" cy="43" r="4" fill="var(--gold-primary)" stroke="none"/>
+    <circle cx="122" cy="43" r="4" fill="var(--gold-primary)" stroke="none"/>
+    <path d="M47 43 C 80 60, 90 100, 122 43" stroke="var(--gold-primary)" opacity=".6"/>
+  </svg>
+  <div class="eyebrow reveal">FIT AUDIT · DGX SPARK 部署链路核对</div>
+  <h1 class="reveal">mgj-spark 与 <span class="g">AIGC-spark × ComfyUI</span><br>是否完美契合？</h1>
+  <span class="cover h2en reveal" style="display:block;font-family:var(--font-mono);font-size:14px;letter-spacing:.1em;color:var(--gold-deep);margin-top:8px;text-transform:uppercase">Deploy &amp; Execute Alignment · GB10 / aeon-spark</span>
+  <p class="lede reveal">结论先行：<b>核心生图链路字节级同源、已在 Spark 实测跑通</b>——但"完美"二字被 <b>1 处运行态地基缺口 + 1 处能力死链 + 2 处文档/维护隐患</b>拦住。契合的是<b>代码</b>，悬空的是<b>运行态与长期一致性</b>。</p>
+  <div class="metrics reveal">
+    <div class="metric"><div class="n">MD5<br>相同</div><div class="l">两份 comfyui_client.py<br>63db1bbb…（字节级同源）</div></div>
+    <div class="metric"><div class="n">36<span style="font-size:22px">s</span></div><div class="l">Klein-9B 实测出图<br>preflight 缺件 0</div></div>
+    <div class="metric"><div class="n">A<span style="font-size:22px">✓</span></div><div class="l">最关键缺口已闭环<br>restart 15s 回 200·实测</div></div>
+    <div class="metric"><div class="n">0</div><div class="l">部署对隔壁下载扰动<br>前后进度实测对比</div></div>
+  </div>
+  <div class="meta-line reveal">机器 nvdspk02@73.237.141.115:2227 · GB10/ARM64/128G 统一内存 · 审计日 2026-07-16 · 你想猫</div>
+</div>
+</section>
+
+<!-- ===== PILLARS ===== -->
+<section>
+<div class="wrap">
+  <div class="sec-en reveal">THREE VERDICTS</div>
+  <h3 class="sec reveal">三支柱判断</h3>
+  <p class="sec-desc reveal">把"契合度"拆成三根柱子看：调用契合（代码层）、运行契合（引擎层）、边界契合（观测层）。前后两根立住了，中间那根是虚的。</p>
+  <div class="pillars">
+    <div class="pillar reveal">
+      <div class="idx">柱 一 · 调用层</div>
+      <h4>同源到字节</h4>
+      <p>mgj-spark 的出图客户端不是"仿写"，而是 AIGC-spark 权威文件的<b>逐字节拷贝</b>。节点拓扑、Klein-9B 档位名、preflight、/view 取图完全一致，天然契合。</p>
+      <span class="verdict v-ok">✅ 完美契合</span>
+    </div>
+    <div class="pillar reveal">
+      <div class="idx">柱 二 · 运行层</div>
+      <h4>引擎不持久</h4>
+      <p>ComfyUI 在 Spark 上是 <code style="font-family:var(--font-mono);font-size:12px;color:var(--gold-bright)">docker exec</code> 手动拉起的，容器一重启即失。mgj-spark 的 systemd 是持久的，<b>它依赖的引擎却不是</b>。</p>
+      <span class="verdict v-gap">⚠ 地基悬空</span>
+    </div>
+    <div class="pillar reveal">
+      <div class="idx">柱 三 · 观测层</div>
+      <h4>只观测不接管</h4>
+      <p>spark_ops 纯只读 T0，读 8188/8265/keeper/nvidia-smi，绝不改任何东西。实测部署全程零扰动隔壁 321GB 下载——边界干净。</p>
+      <span class="verdict v-ok">✅ 完美契合</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ===== TOPO ===== -->
+<section>
+<div class="wrap">
+  <div class="sec-en reveal">EXECUTION TOPOLOGY</div>
+  <h3 class="sec reveal">飞书一句话 → 出图 · 全链路金线拓扑</h3>
+  <p class="sec-desc reveal">左侧是 mgj-spark 的处理链，右侧是它要契合的 AIGC-spark/ComfyUI 资产。金线=已打通；<span style="color:var(--danger)">暗红金虚线=缺口/死链</span>。</p>
+  <div class="topo-box reveal">
+    <svg viewBox="0 0 960 440" width="100%" style="min-width:720px" font-family="var(--font-mono)">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- columns titles -->
+      <text x="150" y="28" fill="#9a927f" font-size="11" letter-spacing="1">mgj-spark 处理链</text>
+      <text x="760" y="28" fill="#9a927f" font-size="11" letter-spacing="1">Spark 资产</text>
+
+      <!-- left nodes -->
+      <g font-size="13" fill="#ede8dc">
+        <rect x="40" y="55" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="58" y="81">飞书 ws 长连接（http 通道）</text>
+        <rect x="40" y="120" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="58" y="146">bridge 路由 · 定档 · 审批门</text>
+        <rect x="40" y="185" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="58" y="211">spark_ops（T0 只读观测）</text>
+        <rect x="40" y="250" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="58" y="276">spark_gen（T1 出图·写死 flux）</text>
+        <rect x="40" y="330" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="58" y="356">core/comfyui_client.py</text>
+      </g>
+      <!-- right nodes -->
+      <g font-size="13" fill="#ede8dc">
+        <rect x="700" y="120" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="716" y="146">AIGC-spark 工作台 :8265</text>
+        <rect x="700" y="185" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="716" y="211">spark-keeper status.json</text>
+        <rect x="700" y="250" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="716" y="276">aeon-spark ComfyUI :8188</text>
+        <rect x="700" y="330" width="220" height="42" rx="4" fill="#14131a" stroke="var(--gold-line)"/><text x="716" y="356">Klein-9B 三件套（已下完）</text>
+        <rect x="700" y="392" width="220" height="38" rx="4" fill="rgba(192,86,58,.06)" stroke="rgba(192,86,58,.4)" stroke-dasharray="5 4"/><text x="716" y="416" fill="#c0563a">Qwen-Edit 模型（未预置）</text>
+      </g>
+
+      <!-- gold beziers (working) -->
+      <g fill="none" stroke="var(--gold-primary)" stroke-width="1.4" filter="url(#glow)" opacity=".85">
+        <path d="M260 76 C 480 76, 480 141, 700 141"/>       <!-- ws->工作台观测? actually ops reads -->
+        <path d="M260 206 C 480 206, 480 206, 700 206"/>     <!-- ops->keeper -->
+        <path d="M260 206 C 480 240, 500 270, 700 271"/>     <!-- ops->comfy stats -->
+        <path d="M260 351 C 480 351, 500 300, 700 271"/>     <!-- client->comfy 8188 -->
+        <path d="M700 271 C 620 300, 780 330, 700 351"/>     <!-- comfy->klein trio -->
+        <path d="M260 271 C 400 271, 380 351, 260 351"/>     <!-- gen->client -->
+      </g>
+      <!-- danger dashed (gap) -->
+      <g fill="none" stroke="var(--danger)" stroke-width="1.4" stroke-dasharray="6 5" opacity=".9">
+        <path d="M260 271 C 460 400, 520 411, 700 411"/>     <!-- gen-> qwen 死链 -->
+      </g>
+
+      <!-- node glpoints -->
+      <g fill="var(--gold-primary)">
+        <circle cx="260" cy="271" r="3.5"/><circle cx="700" cy="271" r="3.5"/><circle cx="260" cy="351" r="3.5"/><circle cx="700" cy="351" r="3.5"/>
+      </g>
+      <circle cx="700" cy="411" r="3.5" fill="var(--danger)"/>
+      <text x="300" y="395" fill="#c0563a" font-size="11">参考图一致性链路：mode 写死 flux + 模型未预置 = 双重死链</text>
+    </svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--gold-primary)"></i>已打通（实测出图）</span>
+      <span><i class="dot" style="background:var(--danger)"></i>缺口 / 死链</span>
+      <span><i class="dot" style="background:#14131a;border:1px solid var(--gold-line)"></i>资产节点</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ===== MATRIX ===== -->
+<section>
+<div class="wrap">
+  <div class="sec-en reveal">ALIGNMENT MATRIX</div>
+  <h3 class="sec reveal">逐维契合判定（带证据）</h3>
+  <p class="sec-desc reveal">六个维度逐条核，判定+证据（文件:行号/来源）。</p>
+  <div style="overflow-x:auto" class="reveal">
+  <table class="matrix">
+    <thead><tr><th>维度</th><th>判定</th><th>证据 / 出处</th></tr></thead>
+    <tbody>
+      <tr><td><b>出图引擎调用</b><br>JSON 工作流</td><td><span class="pill p-ok">● 完美契合</span></td><td>两份 <code>comfyui_client.py</code> MD5 相同 <code>63db1bbb…</code>；节点族/Klein-9B 档位名/preflight/view 取图全同源</td></tr>
+      <tr><td><b>端点 / 档位</b></td><td><span class="pill p-ok">● 完美契合</span></td><td>8188/8265/<code>COMFY_PROFILE=aeon-spark</code>/<code>SPARK_DEPLOY_DIR</code> 在 spark_ops、client、.env.spark.example、DEPLOY 四处全对齐</td></tr>
+      <tr><td><b>Spark 实跑验证</b></td><td><span class="pill p-ok">● 完美契合</span></td><td>progress/06：Klein-9B 中文 prompt 1024²/12步 <b>36.0s · 1,727,644 bytes · PNG 校验通过</b>；preflight 缺节点0/缺模型0</td></tr>
+      <tr><td><b>观测边界</b><br>只读不接管</td><td><span class="pill p-ok">● 完美契合</span></td><td>spark_ops.py:157 <code>tier=0</code>；实测部署全程隔壁下载 248→251GB 无扰动（会话记录 §三）</td></tr>
+      <tr><td><b>ComfyUI 持久性</b></td><td><span class="pill p-ok">● 已修复</span></td><td>2026-07-16 加固：entrypoint 原生 exec + sentinel 已在 + <code>.env</code> 补 <code>SKIP_MODEL_DOWNLOAD=1</code>；实测 <code>docker restart</code> 日志确认 skip、<b>15s 回 200</b></td></tr>
+      <tr><td><b>Qwen 参考图<br>一致性链路</b></td><td><span class="pill p-gap">○ 死链</span></td><td>spark_gen.py:140 写死 <code>mode="flux"</code> + aeon 镜像未预置 Qwen 模型，双重不可达</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- ===== CURIO: WHAT'S ALIGNED ===== -->
+<section>
+<div class="wrap">
+  <div class="sec-en reveal">WHY IT FITS</div>
+  <h3 class="sec reveal">契合何以成立 · 多宝阁</h3>
+  <div class="curio-grid">
+    <div class="curio span3 reveal">
+      <div class="ch"><span class="cn">一</span><h5>一份代码，两处运行</h5></div>
+      <p>mgj-spark 直接把 AIGC-spark 的 <code>build_flux_t2i_graph</code> 搬进 <code>core/</code>，靠 <code>COMFY_PROFILE</code> 环境变量在 aki(Windows) / aeon-spark(GB10) 间零改动切换。同一图、不同档位名。</p>
+      <span class="badge b-ok">✅ 属实 · MD5 同源</span>
+    </div>
+    <div class="curio span3 reveal">
+      <div class="ch"><span class="cn">二</span><h5>去 Node 的飞书通道</h5></div>
+      <p>发送本就是 HTTP(tenant_token)，接收改用 <code>lark-oapi</code> ws 长连接，彻底去掉 lark-cli / Node，最适合无桌面 ARM 服务器。http 通道为 Spark 默认。</p>
+      <span class="badge b-ok">✅ 属实 · registry 默认 http</span>
+    </div>
+    <div class="curio span2 reveal">
+      <div class="ch"><span class="cn">三</span><h5>四路运维态</h5></div>
+      <p>ComfyUI + 工作台 + keeper 进度 + GPU 一卡汇总，GB10 统一内存 VRAM 已实测转绿 <code>122G</code>。</p>
+      <span class="badge b-ok">✅ 属实</span>
+    </div>
+    <div class="curio span2 reveal">
+      <div class="ch"><span class="cn">四</span><h5>观测/动作分流</h5></div>
+      <p>"部署"太贪婪的坑已修：动作词无状态信号则 spark_ops 让路，落 general_qa 走审批门。</p>
+      <span class="badge b-ok">✅ 已修复</span>
+    </div>
+    <div class="curio span2 reveal">
+      <div class="ch"><span class="cn">五</span><h5>单实例 + 单消费者</h5></div>
+      <p>PID 文件锁防双开；AIGC-spark 无飞书消费者，零双消费冲突。</p>
+      <span class="badge b-ok">✅ 属实</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ===== GAPS ===== -->
+<section>
+<div class="wrap">
+  <div class="sec-en reveal">FOUR GAPS</div>
+  <h3 class="sec reveal">拦住"完美"的四道缝</h3>
+  <p class="sec-desc reveal">按严重度排序。A 是运行态地基，必须先补；B 是能力死链；C/D 是隐患。</p>
+  <div class="gaps">
+    <div class="gap-card reveal" style="background:rgba(143,174,107,.06);border-color:rgba(143,174,107,.28);border-left-color:var(--ok)">
+      <div class="gh"><span class="tag" style="color:var(--ok);border-color:rgba(143,174,107,.5)">A · 已闭环 ✓ 2026-07-16</span><h4>ComfyUI 持久化 —— 已修复并实测自证</h4></div>
+      <p>侦察推翻原判断：容器早已由 entrypoint 原生 <code>exec</code> 起(PID 50、非 docker exec)、<code>Up healthy</code>，<code>.models_seeded</code> sentinel 已在、Klein 三件套齐全、<code>restart: unless-stopped</code> 已配。progress/06 的"手动起不持久"是更早快照。</p>
+      <div class="fix"><b>已做的加固(带证据)：</b><code>.env</code> 加 <code>SKIP_MODEL_DOWNLOAD=1</code>(HF_TOKEN 完整·备份 .env.bak.mgj) → <code>docker compose up -d</code> 重建 25s healthy → 实测 <code>docker restart</code> 日志确认「<b>SKIP_MODEL_DOWNLOAD=1 — skipping model fetch</b>」→ <b>15s 回 200</b>，object_info 2.67MB。重启不再触发那个卡 7h 的 300GB 全量下载。</div>
+      <div class="src">实测 2026-07-16 · paramiko 直连 · entrypoint.sh:第5段 sentinel/SKIP 逻辑</div>
+    </div>
+    <div class="gap-card reveal">
+      <div class="gh"><span class="tag">B · 能力死链</span><h4>Qwen 多参考图（★一致性核心）在飞书入口是死的</h4></div>
+      <p>双重原因叠加：① aeon-spark 镜像<b>未预置</b> Qwen-Image-Edit 模型，走 qwen 必报缺模型；② 更要命——<code>spark_gen.py:140</code> <b>写死 <code>mode="flux"</code></b>，飞书里就算带参考图也永远只走文生图，qwen 路径根本调不到。</p>
+      <div class="fix"><b>正解：</b>下 Qwen 三件套放入 aeon models/ + 让 spark_gen 检测到参考图时传 <code>mode="auto"</code>（当前飞书还不收图片，需先补图片消息支持）。</div>
+      <div class="src">证据 plugins/spark_gen.py:140 · comfyui_client.py:41 注释 · progress/06 待办④</div>
+    </div>
+    <div class="gap-card mild reveal">
+      <div class="gh"><span class="tag">C · 文档误导 · 幸而无害</span><h4><code>FLUX_VARIANT=klein9b</code> 是无效值</h4></div>
+      <p>progress/06 与会话记录写 <code>FLUX_VARIANT=klein9b</code>，但代码只认 <code>dev</code>（<code>_flux_key = "flux_dev" if …=="dev" else "flux"</code>）。写 <code>klein9b</code> 落到默认 flux——恰好就是 Klein-9B，<b>结果对、理由错</b>。<code>.env.spark.example</code> 已修正为「置 dev / 默认空」，但两份 progress 仍留误导写法。</p>
+      <div class="fix"><b>正解：</b>把两处 progress 文档里的 <code>=klein9b</code> 改成"留空即 Klein-9B"，避免后人以为它是开关。</div>
+      <div class="src">证据 comfyui_client.py:59 · progress/06:58</div>
+    </div>
+    <div class="gap-card mild reveal">
+      <div class="gh"><span class="tag">D · 维护风险 · 长期漂移</span><h4>client 是"复制"不是"共享"</h4></div>
+      <p>现在两份 MD5 相同，但它们是两个仓库里的两个物理文件，无 symlink / 子模块 / import 共享。AIGC-spark 哪天改工作流（换 Klein 新版、加节点），mgj-spark <b>不会自动跟</b>。当下完美契合，长期会静默漂移。</p>
+      <div class="fix"><b>正解：</b>约定 AIGC-spark 为权威源 + 一条 <code>sync</code> 校验（比对 MD5，不一致告警），或抽成共享包 import。</div>
+      <div class="src">证据 md5sum 双文件一致 · 物理路径分属两仓库</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ===== QUOTE ===== -->
+<section class="dark-quote reveal">
+<div class="wrap">
+  <p>代码层，它<em>逐字节契合</em>；运行层，它把命<em>押在一个手动起、重启就没</em>的容器上。<br>补上那一次 <em>SKIP_MODEL_DOWNLOAD 重启</em>，"契合"才从纸面落到地面。</p>
+  <div class="by">— mgj-spark 契合度审计 · 2026-07-16</div>
+</div>
+</section>
+
+<!-- ===== ROADMAP ===== -->
+<section>
+<div class="wrap">
+  <div class="sec-en reveal">TO PERFECT FIT</div>
+  <h3 class="sec reveal">补齐路线（自底向上）</h3>
+  <div class="roadmap">
+    <div class="rm reveal" style="border-left-color:var(--ok)">
+      <div class="rn" style="color:var(--ok)">STEP 1 · 夯地基 —— ✓ 已完成 2026-07-16</div>
+      <h4>让 ComfyUI 长期稳 —— DONE</h4>
+      <p><code>.env</code> 加 <code>SKIP_MODEL_DOWNLOAD=1</code> + <code>docker compose up -d</code> 生效。验收已过：<code>docker restart comfyui-spark</code> 后日志走 skip、<b>15s 回 200</b>、object_info 2.67MB。restart:unless-stopped 保重开机自启。</p>
+    </div>
+    <div class="rm reveal">
+      <div class="rn">STEP 2 · 端到端</div>
+      <h4>起 AIGC-spark 工作台 :8265</h4>
+      <p>部署后端上 Spark、<code>COMFY_PROFILE=aeon-spark ./start.sh</code>，验收 spark_ops 两灯全绿、工作台完整产品链路出图。</p>
+    </div>
+    <div class="rm reveal">
+      <div class="rn">STEP 3 · 补能力</div>
+      <h4>打通 Qwen 参考图一致性</h4>
+      <p>下 Qwen 三件套入 aeon models/ + spark_gen 支持图片消息并传 <code>mode="auto"</code>。验收：飞书发图+描述 → qwen-edit 锁一致性出图。</p>
+    </div>
+    <div class="rm reveal">
+      <div class="rn">STEP 4 · 防漂移</div>
+      <h4>client 同源校验</h4>
+      <p>加 MD5 比对脚本或抽共享包；改文档 <code>=klein9b</code> 误导写法。验收：AIGC-spark 改 client 时 mgj-spark 侧告警。</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer>mgj-spark · DGX Spark GB10 契合度审计 · 生成于 2026-07-16 · 黑金多宝阁</footer>
+
+<script>
+const io=new IntersectionObserver((es)=>{es.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('in'),(i%6)*80);io.unobserve(e.target)}})},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
