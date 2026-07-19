@@ -12,3 +12,6 @@ memory/**/*.md
 memory/*.db
 memory/**/*.db
 !memory/.gitkeep
+
+# 浏览器自动化临时产物
+.playwright-cli/

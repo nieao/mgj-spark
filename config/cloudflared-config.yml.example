@@ -1,0 +1,32 @@
+# cloudflared 隧道配置模板（DGX Spark · ARM64）
+# =============================================
+# 用法：scripts/cloudflare-tunnel-setup.sh 会用真实 TUNNEL_ID / 域名自动生成
+#       ~/.cloudflared/config.yml；本文件仅作说明与手动兜底参考。
+#
+# 一条隧道承载三个子域名 → 三个本地服务，全部走同一条出站长连接。
+# 后端没起的子域名会返回 502，等服务起来自动通，无需改隧道。
+
+tunnel: <TUNNEL_ID>                                   # cloudflared tunnel create 后拿到的 UUID
+credentials-file: /home/nvdspk02/.cloudflared/<TUNNEL_ID>.json
+
+# 出站连接优化（家宽 NAT 环境更稳）
+protocol: quic
+no-autoupdate: true
+
+# 实际部署：三个 ingress 都先指向 Caddy 反代(:9080) 做 Basic Auth，
+# 再由 Caddy 按 Host 分流到 8188/8265/8250。详见 docs/cloudflare-tunnel.md。
+ingress:
+  # ① ComfyUI 生图引擎
+  - hostname: comfy.<DOMAIN>
+    service: http://127.0.0.1:9080
+
+  # ② AIGC 生图工作台
+  - hostname: aigc.<DOMAIN>
+    service: http://127.0.0.1:9080
+
+  # ③ mgj-spark Web 观测面板（board_port，服务待开发）
+  - hostname: spark.<DOMAIN>
+    service: http://127.0.0.1:9080
+
+  # 兜底：未匹配的主机名一律 404
+  - service: http_status:404
