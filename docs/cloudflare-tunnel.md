@@ -25,14 +25,15 @@ Spark: cloudflared ──► Caddy 反代 :9080（Basic Auth）──┬─► 1
 |---|---|---|
 | `https://comfy.nieao.eu.cc` | ComfyUI 8188 | ✅ 通 |
 | `https://aigc.nieao.eu.cc` | AIGC 工作台 8265 | ✅ 通 |
-| `https://spark.nieao.eu.cc` | mgj 面板 8250 | 门已加，后端待开发（暂 502） |
+| `https://spark.nieao.eu.cc` | mgj 观测面板 8250 | ✅ 通（`observe/board.py`） |
 
-## Spark 上的两个 systemd 服务（都开机自启 + 崩溃自愈）
+## Spark 上的三个 systemd 服务（都开机自启 + 崩溃自愈）
 
 | 服务 | 作用 | 配置文件 |
 |---|---|---|
 | `mgj-cloudflared` | Cloudflare 隧道 | `~/.cloudflared/config.yml`（ingress 全指向 `127.0.0.1:9080`） |
 | `mgj-caddy` | Basic Auth 反代 | `~/mgj-spark/Caddyfile`（`:9080`，按 Host 路由到 8188/8265/8250） |
+| `mgj-board` | 观测看板 8250 | `observe/board.py`（纯 stdlib，`systemd/mgj-board.service`） |
 
 常用命令（在 Spark 上）：
 ```bash
@@ -60,10 +61,17 @@ sudo systemctl restart mgj-caddy
 3. `cloudflared tunnel route dns mgj-spark x.nieao.eu.cc`（建 CNAME）
 4. `sudo systemctl restart mgj-cloudflared mgj-caddy`
 
-## 关于 mgj-spark 面板（spark.nieao.eu.cc 8250）
+## mgj-spark 观测面板（spark.nieao.eu.cc 8250）
 
-`config/registry.json` 里预留了 `board_port: 8250`，但看板服务（`observe/board.py`）尚未开发。
-建好后监听 `127.0.0.1:8250`，`spark.nieao.eu.cc` 自动从 502 转通，无需再动隧道/反代。
+`observe/board.py`——纯 Python 标准库（Spark 免 pip），黑金多宝阁风，15s 自刷，只读遥测：
+- 运维态（ComfyUI/AIGC工作台/spark-keeper/GPU，复用 `plugins.spark_ops.collect_all`）
+- 台账汇总 + 最近任务流水（`core.ledger`）
+- 活跃权限证 + 待审队列（`_state/tokens.json` / `pending_approval.json`）
+- 注册节点 + 关键设置（`core.registry`）
+
+路由：`GET /`（HTML）· `GET /api/state`（JSON）· `GET /healthz`。
+端口取 `registry.json` 的 `board_port`（默认 8250）；`BOARD_PORT` 环境变量可覆盖（本机测试避让占用）。
+本机测试注意：`E:\claude code\猫管家` 也占 8250，本机测本面板要用 `BOARD_PORT=18250 python observe/board.py`。
 
 ## 想升级成邮箱验证码登录（Cloudflare Access）
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=mgj-spark observe board (8250)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=nvdspk02
+WorkingDirectory=/home/nvdspk02/mgj-spark
+ExecStart=/home/nvdspk02/mgj-spark/.venv/bin/python /home/nvdspk02/mgj-spark/observe/board.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
