@@ -19,9 +19,20 @@ import subprocess
 
 from plugins.base import Plugin, Reply
 
-COMFY_URL = os.environ.get("COMFY_URL", "http://127.0.0.1:8188").rstrip("/")
-AIGC_URL = os.environ.get("AIGC_URL", "http://127.0.0.1:8265").rstrip("/")
-SPARK_DEPLOY_DIR = os.path.expanduser(os.environ.get("SPARK_DEPLOY_DIR", "~/spark-deploy"))
+def _env(name, default):
+    """读环境变量并剥掉行内 # 注释与首尾空白。
+    根治：systemd EnvironmentFile 不剥 .env 行内注释，会把「值 # 注释」整段当值 →
+    URL 里混进注释导致 InvalidURL。此处防御性清洗，脏 .env 也不崩。"""
+    v = os.environ.get(name)
+    if v is None:
+        return default
+    v = v.split("#", 1)[0].strip()
+    return v or default
+
+
+COMFY_URL = _env("COMFY_URL", "http://127.0.0.1:8188").rstrip("/")
+AIGC_URL = _env("AIGC_URL", "http://127.0.0.1:8265").rstrip("/")
+SPARK_DEPLOY_DIR = os.path.expanduser(_env("SPARK_DEPLOY_DIR", "~/spark-deploy"))
 
 # 只读观测插件：只接「查状态/问进度」的观测型消息，绝不抢「部署/安装/生成」这类动作请求
 # （动作请求应落到 general_qa，由 core.intent 定档，该升 T2 就走审批门）。

@@ -16,7 +16,8 @@ ComfyUI 出图客户端 —— 跨环境通用版（Windows 秋叶包 ↔ NVIDIA
 """
 import os, json, time, shutil, urllib.request, urllib.parse
 
-COMFY_URL = os.environ.get("COMFY_URL") or "http://127.0.0.1:8188"
+# 剥掉 .env 行内 # 注释（systemd EnvironmentFile 不剥，否则 URL 混进注释 → InvalidURL）
+COMFY_URL = ((os.environ.get("COMFY_URL") or "").split("#", 1)[0].strip()) or "http://127.0.0.1:8188"
 COMFY_ROOT = os.environ.get("COMFY_ROOT") or (r"E:\ComfyUI-aki-v2\ComfyUI" if os.name == "nt" else "")
 COMFY_INPUT = os.path.join(COMFY_ROOT, "input") if COMFY_ROOT else ""
 COMFY_OUTPUT = os.path.join(COMFY_ROOT, "output") if COMFY_ROOT else ""

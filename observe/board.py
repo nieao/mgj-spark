@@ -277,7 +277,9 @@ function render(d){
 
 let cd=15;
 async function tick(){
-  try{const r=await fetch('/api/state',{cache:'no-store'});render(await r.json());$('err').textContent='';}
+  // 用 location.origin 拼绝对地址(剥掉 URL 里可能内嵌的 user:pass)，
+  // 否则从带凭证书签打开时 fetch 会因「URL includes credentials」报错。
+  try{const r=await fetch(location.origin+'/api/state',{cache:'no-store'});render(await r.json());$('err').textContent='';}
   catch(e){$('err').textContent='拉取失败:'+e.message;}
   cd=15;
 }
