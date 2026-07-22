@@ -116,6 +116,10 @@ class SparkGenPlugin(Plugin):
     def tier(self, text, ctx):
         return _gen_tier(1)
 
+    def eta_seconds(self, text, ctx):
+        # 生图同步阻塞出图，约 1~2 分钟 → 触发 bridge 通用回执 + 心跳（每 30s）
+        return env_int("MGJ_GEN_ETA", 90)
+
     def handle(self, text, ctx, rec):
         try:
             from core import comfyui_client as cc

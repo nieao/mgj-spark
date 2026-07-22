@@ -15,3 +15,6 @@ memory/**/*.db
 
 # 浏览器自动化临时产物
 .playwright-cli/
+# 运行时产物：飞书登录二维码截图 / 生成图片，不入库
+.screenshots/
+outputs/
